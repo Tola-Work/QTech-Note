@@ -1,19 +1,25 @@
 export interface Note {
-  id: string
+  noteId: number
   title: string
-  content?: string
-  createdAt: Date
-  updatedAt: Date
-  userId: string
+  content: string
+  createdAt: string
+  updatedAt: string
+  isActive: boolean
+  userId: number
+}
+
+export interface PaginatedResponse<T> {
+  data: T[]
+  totalPages: number
+  currentPage: number
+}
+
+export interface NoteSearchParams {
+  Page?: number
+  PageSize?: number
 }
 
 export interface NoteFormData {
   title: string
   content: string
-}
-
-export interface NoteSearchParams {
-  query?: string
-  sortBy?: 'createdAt' | 'updatedAt' | 'title'
-  sortOrder?: 'asc' | 'desc'
 } 

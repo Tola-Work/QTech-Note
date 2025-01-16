@@ -1,40 +1,45 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { notesService } from '@/services/notesService'
-import type { Note } from '@/features/notes/types/notes.types'
+import type { Note, NoteFormData, NoteSearchParams } from '@/features/notes/types/notes.types'
 
 interface NotesState {
   items: Note[]
   selectedNote: Note | null
   loading: boolean
   error: string | null
+  pagination: {
+    currentPage: number
+    totalPages: number
+  }
 }
 
 const initialState: NotesState = {
   items: [],
   selectedNote: null,
   loading: false,
-  error: null
+  error: null,
+  pagination: {
+    currentPage: 1,
+    totalPages: 1
+  }
 }
 
 export const fetchNotes = createAsyncThunk(
   'notes/fetchNotes',
-  async () => {
-    const response = await notesService.getNotes()
-    return response.data
-  }
-)
-
-export const fetchNoteById = createAsyncThunk(
-  'notes/fetchNoteById',
-  async (id: string) => {
-    const response = await notesService.getNoteById(id)
-    return response.data
+  async (params?: NoteSearchParams) => {
+    const defaultParams = {
+      Page: 1,
+      PageSize: 10,
+      ...params
+    }
+    const response = await notesService.getNotes(defaultParams)
+    return response
   }
 )
 
 export const createNote = createAsyncThunk(
   'notes/createNote',
-  async (note: Partial<Note>) => {
+  async (note: NoteFormData) => {
     const response = await notesService.createNote(note)
     return response.data
   }
@@ -42,7 +47,7 @@ export const createNote = createAsyncThunk(
 
 export const updateNote = createAsyncThunk(
   'notes/updateNote',
-  async ({ id, ...note }: Partial<Note> & { id: string }) => {
+  async ({ id, ...note }: NoteFormData & { id: number }) => {
     const response = await notesService.updateNote(id, note)
     return response.data
   }
@@ -50,57 +55,62 @@ export const updateNote = createAsyncThunk(
 
 export const deleteNote = createAsyncThunk(
   'notes/deleteNote',
-  async (id: string) => {
+  async (id: number) => {
     await notesService.deleteNote(id)
     return id
+  }
+)
+
+export const fetchNoteById = createAsyncThunk(
+  'notes/fetchNoteById',
+  async (id: number) => {
+    const response = await notesService.getNoteById(id)
+    return response
   }
 )
 
 const notesSlice = createSlice({
   name: 'notes',
   initialState,
-  reducers: {
-    clearError: (state) => {
-      state.error = null
-    }
-  },
+  reducers: {},
   extraReducers: (builder) => {
     builder
+      // Fetch notes
       .addCase(fetchNotes.pending, (state) => {
         state.loading = true
         state.error = null
       })
       .addCase(fetchNotes.fulfilled, (state, action) => {
+        state.items = action.payload.data
+        state.pagination = {
+          currentPage: action.payload.currentPage,
+          totalPages: action.payload.totalPages
+        }
         state.loading = false
-        state.items = action.payload
       })
       .addCase(fetchNotes.rejected, (state, action) => {
         state.loading = false
         state.error = action.error.message || 'Failed to fetch notes'
       })
-      .addCase(fetchNoteById.fulfilled, (state, action) => {
-        state.selectedNote = action.payload
-      })
+      // Create note
       .addCase(createNote.fulfilled, (state, action) => {
         state.items.push(action.payload)
       })
+      // Update note
       .addCase(updateNote.fulfilled, (state, action) => {
-        const index = state.items.findIndex(note => note.id === action.payload.id)
+        const index = state.items.findIndex(note => note.noteId === action.payload.noteId)
         if (index !== -1) {
           state.items[index] = action.payload
         }
-        if (state.selectedNote?.id === action.payload.id) {
-          state.selectedNote = action.payload
-        }
       })
+      // Delete note
       .addCase(deleteNote.fulfilled, (state, action) => {
-        state.items = state.items.filter(note => note.id !== action.payload)
-        if (state.selectedNote?.id === action.payload) {
-          state.selectedNote = null
-        }
+        state.items = state.items.filter(note => note.noteId !== action.payload)
+      })
+      .addCase(fetchNoteById.fulfilled, (state, action) => {
+        state.selectedNote = action.payload
       })
   }
 })
 
-export const { clearError } = notesSlice.actions
 export default notesSlice.reducer 

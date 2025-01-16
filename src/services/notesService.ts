@@ -1,15 +1,20 @@
 import api from './api'
-import type { Note } from '@/features/notes/types/notes.types'
+import type { Note, PaginatedResponse, NoteSearchParams } from '@/features/notes/types/notes.types'
 import type { ApiResponse } from '@/types/api'
 
 export const notesService = {
-  async getNotes(): Promise<ApiResponse<Note[]>> {
-    const response = await api.get<ApiResponse<Note[]>>('/Note/GetAll')
+  async getNotes(params?: NoteSearchParams): Promise<PaginatedResponse<Note>> {
+    const response = await api.get<PaginatedResponse<Note>>('/Note/GetAll', {
+      params: {
+        Page: params?.Page || 1,
+        PageSize: params?.PageSize || 10
+      }
+    })
     return response.data
   },
 
-  async getNoteById(id: string): Promise<ApiResponse<Note>> {
-    const response = await api.get<ApiResponse<Note>>(`/Note/GetById/${id}`)
+  async getNoteById(id: number): Promise<Note> {
+    const response = await api.get<Note>(`/Note/GetById/${id}`)
     return response.data
   },
 
@@ -18,12 +23,12 @@ export const notesService = {
     return response.data
   },
 
-  async updateNote(id: string, note: Partial<Note>): Promise<ApiResponse<Note>> {
+  async updateNote(id: number, note: Partial<Note>): Promise<ApiResponse<Note>> {
     const response = await api.put<ApiResponse<Note>>(`/Note/Update/${id}`, note)
     return response.data
   },
 
-  async deleteNote(id: string): Promise<ApiResponse<void>> {
+  async deleteNote(id: number): Promise<ApiResponse<void>> {
     const response = await api.delete<ApiResponse<void>>(`/Note/Delete/${id}`)
     return response.data
   },
