@@ -1,17 +1,17 @@
-export interface Note {
-  noteId: number
-  title: string
-  content: string
-  createdAt: string
-  updatedAt: string
-  isActive: boolean
-  userId: number
+export interface PaginatedResponse<T> {
+  data: T[];
+  currentPage: number;
+  totalPages: number;
 }
 
-export interface PaginatedResponse<T> {
-  data: T[]
-  totalPages: number
-  currentPage: number
+export interface Note {
+  noteId: number;
+  title: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  isActive: boolean;
+  userId: number;
 }
 
 export interface NoteSearchParams {

@@ -4,13 +4,24 @@ import type { ApiResponse } from '@/types/api'
 
 export const notesService = {
   async getNotes(params?: NoteSearchParams): Promise<PaginatedResponse<Note>> {
-    const response = await api.get<PaginatedResponse<Note>>('/Note/GetAll', {
+    console.log('Fetching notes with params:', params);
+    const response = await api.get('/Note/GetAll', {
       params: {
         Page: params?.Page || 1,
         PageSize: params?.PageSize || 10
       }
-    })
-    return response.data
+    });
+
+    console.log('Raw API response:', response);
+    
+    // Extract the nested data structure
+    const { data: responseData } = response;
+    
+    return {
+      data: responseData.data || [],
+      currentPage: responseData.currentPage,
+      totalPages: responseData.totalPages
+    };
   },
 
   async getNoteById(id: number): Promise<Note> {

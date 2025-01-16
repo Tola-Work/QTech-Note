@@ -33,7 +33,14 @@ export const fetchNotes = createAsyncThunk(
       ...params
     }
     const response = await notesService.getNotes(defaultParams)
-    return response
+    // Return the exact structure we want to store
+    return {
+      items: response.data,
+      pagination: {
+        currentPage: response.currentPage,
+        totalPages: response.totalPages
+      }
+    }
   }
 )
 
@@ -72,7 +79,18 @@ export const fetchNoteById = createAsyncThunk(
 const notesSlice = createSlice({
   name: 'notes',
   initialState,
-  reducers: {},
+  reducers: {
+    // Add a reducer to clear the state when needed
+    clearNotes: (state) => {
+      state.items = []
+      state.selectedNote = null
+      state.error = null
+      state.pagination = {
+        currentPage: 1,
+        totalPages: 1
+      }
+    }
+  },
   extraReducers: (builder) => {
     builder
       // Fetch notes
@@ -81,36 +99,37 @@ const notesSlice = createSlice({
         state.error = null
       })
       .addCase(fetchNotes.fulfilled, (state, action) => {
-        state.items = action.payload.data
-        state.pagination = {
-          currentPage: action.payload.currentPage,
-          totalPages: action.payload.totalPages
-        }
+        // Directly update the state with the transformed data
+        state.items = action.payload.items
+        state.pagination = action.payload.pagination
         state.loading = false
+        state.error = null
       })
       .addCase(fetchNotes.rejected, (state, action) => {
         state.loading = false
         state.error = action.error.message || 'Failed to fetch notes'
+        state.items = [] // Clear items on error
       })
       // Create note
       .addCase(createNote.fulfilled, (state, action) => {
-        state.items.push(action.payload)
+        state.items = [...state.items, action.payload]
       })
       // Update note
       .addCase(updateNote.fulfilled, (state, action) => {
-        const index = state.items.findIndex(note => note.noteId === action.payload.noteId)
-        if (index !== -1) {
-          state.items[index] = action.payload
-        }
+        state.items = state.items.map(note => 
+          note.noteId === action.payload.noteId ? action.payload : note
+        )
       })
       // Delete note
       .addCase(deleteNote.fulfilled, (state, action) => {
         state.items = state.items.filter(note => note.noteId !== action.payload)
       })
+      // Fetch note by id
       .addCase(fetchNoteById.fulfilled, (state, action) => {
         state.selectedNote = action.payload
       })
   }
 })
 
+export const { clearNotes } = notesSlice.actions
 export default notesSlice.reducer 

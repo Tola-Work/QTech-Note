@@ -1,17 +1,7 @@
 <template>
-  <div class="h-screen flex bg-gray-50">
-    <!-- Sidebar -->
-    <Sidebar 
-      @new-note="showNewNoteModal = true" 
-      @search="handleSearch"
-      :activeSort="sortBy"
-      @sort="handleSort"
-    />
-
     <!-- Main Content -->
     <main class="flex-1 flex flex-col overflow-hidden">
       <!-- App Bar -->
-      <AppBar @logout="handleLogout" />
 
       <!-- Content Area -->
       <div class="flex-1 flex flex-col overflow-hidden">
@@ -51,16 +41,29 @@
             :loading="loading"
             :error="error"
             :view="currentView"
+            :debug="true"
             @edit="handleEditNote"
             @delete="handleDeleteNote"
           />
+
+          <!-- Component Debug Info -->
+          <div v-if="true" class="mt-4 p-4 bg-gray-100 rounded">
+            <pre class="text-xs">
+NotesView Props:
+notes: {{ notes?.length || 0 }} items
+loading: {{ loading }}
+error: {{ error || 'none' }}
+currentPage: {{ currentPage }}
+totalPages: {{ totalPages }}
+            </pre>
+          </div>
 
           <!-- Pagination -->
           <div v-if="notes.length > 0" class="mt-6 flex justify-center">
             <Pagination 
               :current-page="currentPage"
               :total-pages="totalPages"
-              @change="handlePageChange"
+              @change="$emit('page-change', $event)"
             />
           </div>
         </div>
@@ -80,19 +83,18 @@
         @cancel="handleCancelEdit"
       />
     </Modal>
-  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useAppDispatch } from "@/store/hooks";
 import { logout } from "@/store/slices/authSlice";
 import {
-  fetchNotes,
   createNote,
   updateNote,
   deleteNote,
+  fetchNotes,
 } from "@/store/slices/notesSlice";
 import {
   PlusIcon,
@@ -100,8 +102,6 @@ import {
   ListBulletIcon as ViewListIcon
 } from "@heroicons/vue/24/outline";
 import type { Note, NoteFormData, NoteSearchParams } from "@/features/notes/types/notes.types";
-import AppBar from "@/components/layout/AppBar.vue";
-import Sidebar from "@/components/layout/Sidebar.vue";
 import Button from "@/components/ui/Button.vue";
 import Modal from "@/components/ui/Modal.vue";
 import NoteList from "@/features/notes/components/NoteList.vue";
@@ -111,52 +111,35 @@ import Pagination from "@/components/ui/Pagination.vue";
 const router = useRouter();
 const dispatch = useAppDispatch();
 
-// State
-const loading = ref(false);
+const props = defineProps<{
+  notes: Note[]
+  loading: boolean
+  error: string | null
+  currentPage: number
+  totalPages: number
+}>()
+
+// Watch props changes
+watch(() => props.notes, (newNotes) => {
+  console.log('Notes prop changed:', newNotes);
+}, { immediate: true });
+
+defineEmits<{
+  (e: 'page-change', page: number): void
+  (e: 'search', params: NoteSearchParams): void
+  (e: 'sort', sort: string): void
+}>()
+
+// Local state
 const saving = ref(false);
-const error = ref("");
 const showNewNoteModal = ref(false);
 const editingNote = ref<Note | null>(null);
-const sortBy = ref("lastUpdated");
 const currentView = ref<"grid" | "list">("grid");
 
 const viewOptions = [
   { value: "grid", icon: ViewGridIcon },
   { value: "list", icon: ViewListIcon },
 ];
-
-// Store selectors
-const notes = useAppSelector((state) => state.notes.items);
-const currentPage = useAppSelector((state) => state.notes.pagination.currentPage);
-const totalPages = useAppSelector((state) => state.notes.pagination.totalPages);
-
-// Handlers
-const handleLogout = async () => {
-  await dispatch(logout());
-  router.push("/auth/login");
-};
-
-const handleSort = (sort: string) => {
-  sortBy.value = sort;
-  handleSearch({ Page: 1, PageSize: 10 });
-};
-
-// Fetch notes on component mount
-onMounted(async () => {
-  try {
-    loading.value = true;
-    await dispatch(
-      fetchNotes({
-        Page: 1,
-        PageSize: 10
-      })
-    );
-  } catch (err: any) {
-    error.value = err.message || "Failed to fetch notes";
-  } finally {
-    loading.value = false;
-  }
-});
 
 // Handle note operations
 const handleSaveNote = async (data: NoteFormData) => {
@@ -172,9 +155,12 @@ const handleSaveNote = async (data: NoteFormData) => {
     showNewNoteModal.value = false;
     editingNote.value = null;
     // Refresh notes list
-    await dispatch(fetchNotes());
+    await dispatch(fetchNotes({
+      Page: 1,
+      PageSize: 10
+    }));
   } catch (err: any) {
-    error.value = err.message || "Failed to save note";
+    console.error('Failed to save note:', err);
   } finally {
     saving.value = false;
   }
@@ -191,47 +177,17 @@ const handleDeleteNote = async (id: number) => {
   try {
     await dispatch(deleteNote(id)).unwrap();
     // Refresh notes list
-    await dispatch(fetchNotes());
+    await dispatch(fetchNotes({
+      Page: 1,
+      PageSize: 10
+    }));
   } catch (err: any) {
-    error.value = err.message || "Failed to delete note";
+    console.error('Failed to delete note:', err);
   }
 };
 
 const handleCancelEdit = () => {
   editingNote.value = null;
   showNewNoteModal.value = false;
-};
-
-const handleSearch = async (params: NoteSearchParams) => {
-  try {
-    loading.value = true;
-    await dispatch(
-      fetchNotes({
-        Page: 1,
-        PageSize: 10,
-      })
-    );
-  } catch (err: any) {
-    error.value = err.message || "Failed to search notes";
-  } finally {
-    loading.value = false;
-  }
-};
-
-// Add page change handler
-const handlePageChange = async (page: number) => {
-  try {
-    loading.value = true;
-    await dispatch(
-      fetchNotes({
-        Page: page,
-        PageSize: 10,
-      })
-    );
-  } catch (err: any) {
-    error.value = err.message || "Failed to fetch notes";
-  } finally {
-    loading.value = false;
-  }
 };
 </script>

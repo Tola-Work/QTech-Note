@@ -2,6 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { ROUTE_NAMES } from '@/constants/routes'
 import { setupGuards } from './guards'
 import AuthLayout from '@/layouts/AuthLayout.vue'
+import DefaultLayout from '@/layouts/DefaultLayout.vue'
+import NotesView from '@/views/notes/NotesView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -24,12 +26,13 @@ const router = createRouter({
     },
     {
       path: '/',
-      component: () => import('@/layouts/DefaultLayout.vue'),
+      component: DefaultLayout,
       children: [
         {
           path: '',
-          name: ROUTE_NAMES.NOTES.LIST,
-          component: () => import('@/views/notes/NotesView.vue')
+          name: 'notes',
+          component: NotesView,
+          props: true
         },
         {
           path: 'notes/:id',

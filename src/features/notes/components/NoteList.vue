@@ -10,7 +10,7 @@
       {{ error }}
     </div>
 
-    <div v-else-if="notes.length === 0" class="text-gray-500 text-center py-8">
+    <div v-else-if="!notes || notes.length === 0" class="text-gray-500 text-center py-8">
       No notes found. Create your first note!
     </div>
 
@@ -29,6 +29,18 @@
         @delete="$emit('delete', note.noteId)"
       />
     </div>
+
+    <div v-if="debug" class="mt-4 p-4 bg-gray-100 rounded text-sm font-mono">
+      <div>Component Props:</div>
+      <pre class="mt-1 text-xs">
+        notes: {{ notes?.length || 0 }} items
+        loading: {{ loading }}
+        error: {{ error || 'none' }}
+        view: {{ view }}
+      </pre>
+      <div class="mt-2">First note:</div>
+      <pre class="mt-1 text-xs">{{ notes?.[0] || 'no notes' }}</pre>
+    </div>
   </div>
 </template>
 
@@ -40,7 +52,8 @@ defineProps<{
   notes: Note[];
   loading?: boolean;
   error?: string;
-  view?: 'grid' | 'list'
+  view?: 'grid' | 'list';
+  debug?: boolean;
 }>();
 
 defineEmits<{
