@@ -7,13 +7,13 @@
           @click="$emit('edit', note)"
           class="text-gray-600 hover:text-blue-600"
         >
-          <i class="fas fa-edit"></i>
+          <PencilSquareIcon class="w-5 h-5" />
         </button>
         <button 
           @click="$emit('delete', note.noteId)"
           class="text-gray-600 hover:text-red-600"
         >
-          <i class="fas fa-trash"></i>
+          <TrashIcon class="w-5 h-5" />
         </button>
       </div>
     </div>
@@ -29,6 +29,7 @@
 
 <script setup lang="ts">
 import { format } from 'date-fns'
+import { PencilSquareIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import type { Note } from '../types/notes.types'
 
 defineProps<{

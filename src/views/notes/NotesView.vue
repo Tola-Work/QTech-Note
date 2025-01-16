@@ -8,7 +8,7 @@
         <!-- Page Header -->
         <div class="p-6 bg-white border-b">
           <div class="flex justify-between items-center">
-            <h2 class="text-2xl font-bold text-gray-900">My Notes</h2>
+            <h2 class="text-2xl font-bold text-gray-900">QTech Notes</h2>
             
             <div class="flex items-center gap-4">
               <!-- View Options -->
@@ -41,29 +41,16 @@
             :loading="loading"
             :error="error"
             :view="currentView"
-            :debug="true"
             @edit="handleEditNote"
             @delete="handleDeleteNote"
           />
 
-          <!-- Component Debug Info -->
-          <div v-if="true" class="mt-4 p-4 bg-gray-100 rounded">
-            <pre class="text-xs">
-NotesView Props:
-notes: {{ notes?.length || 0 }} items
-loading: {{ loading }}
-error: {{ error || 'none' }}
-currentPage: {{ currentPage }}
-totalPages: {{ totalPages }}
-            </pre>
-          </div>
-
           <!-- Pagination -->
           <div v-if="notes.length > 0" class="mt-6 flex justify-center">
             <Pagination 
-              :current-page="currentPage"
-              :total-pages="totalPages"
-              @change="$emit('page-change', $event)"
+              :current-page="pagination.currentPage"
+              :total-pages="pagination.totalPages"
+              @change="handlePageChange"
             />
           </div>
         </div>
@@ -86,10 +73,9 @@ totalPages: {{ totalPages }}
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { useAppDispatch } from "@/store/hooks";
-import { logout } from "@/store/slices/authSlice";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   createNote,
   updateNote,
@@ -101,34 +87,21 @@ import {
   Squares2X2Icon as ViewGridIcon,
   ListBulletIcon as ViewListIcon
 } from "@heroicons/vue/24/outline";
-import type { Note, NoteFormData, NoteSearchParams } from "@/features/notes/types/notes.types";
+import type { Note, NoteFormData } from "@/features/notes/types/notes.types";
 import Button from "@/components/ui/Button.vue";
 import Modal from "@/components/ui/Modal.vue";
 import NoteList from "@/features/notes/components/NoteList.vue";
 import NoteForm from "@/features/notes/components/NoteForm.vue";
 import Pagination from "@/components/ui/Pagination.vue";
 
-const router = useRouter();
+useRouter();
 const dispatch = useAppDispatch();
 
-const props = defineProps<{
-  notes: Note[]
-  loading: boolean
-  error: string | null
-  currentPage: number
-  totalPages: number
-}>()
-
-// Watch props changes
-watch(() => props.notes, (newNotes) => {
-  console.log('Notes prop changed:', newNotes);
-}, { immediate: true });
-
-defineEmits<{
-  (e: 'page-change', page: number): void
-  (e: 'search', params: NoteSearchParams): void
-  (e: 'sort', sort: string): void
-}>()
+// Redux selectors
+const notes = useAppSelector((state) => state.notes.items);
+const loading = useAppSelector((state) => state.notes.loading);
+const error = useAppSelector((state) => state.notes.error);
+const pagination = useAppSelector((state) => state.notes.pagination);
 
 // Local state
 const saving = ref(false);
@@ -137,9 +110,9 @@ const editingNote = ref<Note | null>(null);
 const currentView = ref<"grid" | "list">("grid");
 
 const viewOptions = [
-  { value: "grid", icon: ViewGridIcon },
-  { value: "list", icon: ViewListIcon },
-];
+  { value: "grid" as const, icon: ViewGridIcon },
+  { value: "list" as const, icon: ViewListIcon },
+] as const;
 
 // Handle note operations
 const handleSaveNote = async (data: NoteFormData) => {
@@ -190,4 +163,19 @@ const handleCancelEdit = () => {
   editingNote.value = null;
   showNewNoteModal.value = false;
 };
+
+const handlePageChange = (page: number) => {
+  dispatch(fetchNotes({
+    Page: page,
+    PageSize: 10
+  }));
+};
+
+// Add initial fetch on component mount
+onMounted(() => {
+  dispatch(fetchNotes({
+    Page: 1,
+    PageSize: 10
+  }));
+});
 </script>

@@ -30,17 +30,7 @@
       />
     </div>
 
-    <div v-if="debug" class="mt-4 p-4 bg-gray-100 rounded text-sm font-mono">
-      <div>Component Props:</div>
-      <pre class="mt-1 text-xs">
-        notes: {{ notes?.length || 0 }} items
-        loading: {{ loading }}
-        error: {{ error || 'none' }}
-        view: {{ view }}
-      </pre>
-      <div class="mt-2">First note:</div>
-      <pre class="mt-1 text-xs">{{ notes?.[0] || 'no notes' }}</pre>
-    </div>
+    
   </div>
 </template>
 
@@ -51,7 +41,7 @@ import type { Note } from "../types/notes.types";
 defineProps<{
   notes: Note[];
   loading?: boolean;
-  error?: string;
+  error?: string | null;
   view?: 'grid' | 'list';
   debug?: boolean;
 }>();

@@ -47,55 +47,57 @@
           All Notes
         </router-link>
       </nav>
+
+      <!-- Add this at the bottom of aside -->
+      <div class="p-4 border-t mt-auto">
+        <button 
+          @click="handleLogout" 
+          class="w-full flex items-center px-3 py-2 text-gray-600 hover:text-red-600 hover:bg-gray-50 rounded-lg"
+        >
+          <ArrowLeftOnRectangleIcon class="w-5 h-5 mr-3" />
+          Logout
+        </button>
+      </div>
     </aside>
 
     <!-- Main Content -->
     <div class="flex-1">
       <router-view 
         v-bind="{
-          notes: notesState.items || [],
-          loading: notesState.loading,
-          error: notesState.error,
-          currentPage: notesState.pagination.currentPage,
-          totalPages: notesState.pagination.totalPages
+          notes,
+          loading,
+          error,
+          currentPage: pagination.currentPage,
+          totalPages: pagination.totalPages
         }"
         @page-change="handlePageChange"
         @search="handleSearch"
         @sort="handleSort"
       />
     </div>
-
-    <!-- Debug info -->
-    <div v-if="true" class="fixed bottom-4 right-4 p-4 bg-white shadow rounded max-w-md overflow-auto max-h-96">
-      <pre class="text-xs">
-Store State:
-{{ JSON.stringify(notesState, null, 2) }}
-
-Local State:
-{{ JSON.stringify({
-  loading: loading,
-  error: error,
-  searchQuery: searchQuery,
-  sortBy: sortBy
-}, null, 2) }}
-      </pre>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchNotes, clearNotes } from "@/store/slices/notesSlice";
-import { MagnifyingGlassIcon, DocumentTextIcon } from "@heroicons/vue/24/outline";
+import { MagnifyingGlassIcon, DocumentTextIcon, ArrowLeftOnRectangleIcon } from "@heroicons/vue/24/outline";
 import { debounce } from "@/utils/helpers";
 import type { NoteSearchParams } from "@/features/notes/types/notes.types";
+import { useRouter } from 'vue-router';
+import { logout } from "@/store/slices/authSlice";
 
 const dispatch = useAppDispatch();
+const router = useRouter();
 
-// State
-const loading = ref(false);
-const error = ref("");
+// Use separate selectors for better performance
+const notes = useAppSelector((state) => state.notes.items);
+const loading = useAppSelector((state) => state.notes.loading);
+const error = useAppSelector((state) => state.notes.error);
+const pagination = useAppSelector((state) => state.notes.pagination);
+
+// Local state only for UI controls
 const searchQuery = ref("");
 const sortBy = ref("lastUpdated");
 
@@ -105,29 +107,12 @@ const sortOptions = [
   { label: "Title", value: "title" },
 ];
 
-// Store selector
-const notesState = useAppSelector((state) => {
-  console.log('Current store state:', state.notes);
-  return state.notes;
-});
-
-// Watch store changes
-watch(() => notesState.items, (newItems) => {
-  console.log('Notes items changed:', newItems);
-}, { deep: true });
-
 // Handlers
 const fetchNotesList = async (params: NoteSearchParams) => {
   try {
-    loading.value = true;
-    error.value = "";
-    const result = await dispatch(fetchNotes(params)).unwrap();
-    console.log('Fetch completed, result:', result);
+    await dispatch(fetchNotes(params)).unwrap();
   } catch (err: any) {
     console.error('Fetch error:', err);
-    error.value = err.message || "Failed to fetch notes";
-  } finally {
-    loading.value = false;
   }
 };
 
@@ -171,4 +156,10 @@ onMounted(async () => {
 onUnmounted(() => {
   dispatch(clearNotes());
 });
+
+// Add logout handler
+const handleLogout = async () => {
+  await dispatch(logout());
+  router.push('/auth/login');
+};
 </script> 
