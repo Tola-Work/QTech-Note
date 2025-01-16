@@ -1,8 +1,11 @@
 export interface User {
-  id: string
-  email: string
+  userId: number
   username: string
-  token?: string
+  email: string
+  accessToken: string
+  refreshToken: string
+  accessTokenExpiry: string
+  refreshTokenExpiry: string
 }
 
 export interface LoginCredentials {

@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { authService } from '@/services/authService'
 import type { AuthState } from '@/features/auth/types/auth.types'
 import type { LoginCredentials, RegisterCredentials } from '@/features/auth/types/auth.types'
-import { storage, TOKEN_KEY, USER_KEY } from '@/utils/localStorage'
+import { storage, TOKEN_KEY, USER_KEY, REFRESH_TOKEN_KEY } from '@/utils/localStorage'
 
 const initialState: AuthState = {
   user: storage.get(USER_KEY),
@@ -13,17 +13,25 @@ const initialState: AuthState = {
 
 export const login = createAsyncThunk(
   'auth/login',
-  async (credentials: LoginCredentials) => {
-    const response = await authService.login(credentials)
-    return response.data
+  async (credentials: LoginCredentials, { rejectWithValue }) => {
+    try {
+      const response = await authService.login(credentials)
+      return response.data
+    } catch (error: any) {
+      return rejectWithValue(error.message)
+    }
   }
 )
 
 export const register = createAsyncThunk(
   'auth/register',
-  async (credentials: RegisterCredentials) => {
-    const response = await authService.register(credentials)
-    return response.data
+  async (credentials: RegisterCredentials, { rejectWithValue }) => {
+    try {
+      const response = await authService.register(credentials)
+      return response.data
+    } catch (error: any) {
+      return rejectWithValue(error.message)
+    }
   }
 )
 
@@ -53,17 +61,23 @@ const authSlice = createSlice({
         state.isAuthenticated = true
         state.loading = false
         storage.set(USER_KEY, action.payload)
-        storage.set(TOKEN_KEY, action.payload.token)
+        storage.set(TOKEN_KEY, action.payload.accessToken)
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false
-        state.error = action.error.message || 'Login failed'
+        state.error = action.payload as string || 'Login failed'
       })
       .addCase(register.fulfilled, (state, action) => {
         state.user = action.payload
         state.isAuthenticated = true
+        state.loading = false
         storage.set(USER_KEY, action.payload)
-        storage.set(TOKEN_KEY, action.payload.token)
+        storage.set(TOKEN_KEY, action.payload.accessToken)
+        storage.set(REFRESH_TOKEN_KEY, action.payload.refreshToken)
+      })
+      .addCase(register.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload as string || 'Registration failed'
       })
       .addCase(logout.fulfilled, (state) => {
         state.user = null

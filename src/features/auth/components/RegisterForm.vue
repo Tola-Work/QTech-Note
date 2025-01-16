@@ -66,6 +66,7 @@ import { useRouter } from 'vue-router'
 import { useAppDispatch } from '@/store/hooks'
 import { register } from '@/store/slices/authSlice'
 import type { RegisterCredentials } from '../types/auth.types'
+import { ROUTES } from '@/constants/routes'
 
 const router = useRouter()
 const dispatch = useAppDispatch()
@@ -89,9 +90,10 @@ const handleSubmit = async () => {
   try {
     loading.value = true
     error.value = ''
-    await dispatch(register(form.value))
-    router.push('/')
-  } catch (err:any) {
+    await dispatch(register(form.value)).unwrap()
+    // Redirect to dashboard after successful registration
+    router.push(ROUTES.HOME)
+  } catch (err: any) {
     error.value = err.message || 'Failed to register'
   } finally {
     loading.value = false
