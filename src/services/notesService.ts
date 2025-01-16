@@ -4,17 +4,23 @@ import type { ApiResponse } from '@/types/api'
 
 export const notesService = {
   async getNotes(params?: NoteSearchParams): Promise<PaginatedResponse<Note>> {
-    console.log('Fetching notes with params:', params);
-    const response = await api.get('/Note/GetAll', {
-      params: {
-        Page: params?.Page || 1,
-        PageSize: params?.PageSize || 10
-      }
+    const apiParams = {
+      Page: params?.Page || 1,
+      PageSize: params?.PageSize || 10,
+      SortBy: params?.SortBy || 'UpdatedAt',
+      SortOrder: (params?.SortOrder || 'desc').toUpperCase(),
+      title: params?.Query || ''
+    };
+
+    console.log('API request params:', apiParams);
+
+    const endpoint = apiParams.title ? '/Note/SearchNotes' : '/Note/GetAll';
+    const response = await api.get(endpoint, {
+      params: apiParams
     });
 
-    console.log('Raw API response:', response);
+    console.log('API response:', response);
     
-    // Extract the nested data structure
     const { data: responseData } = response;
     
     return {
@@ -34,8 +40,8 @@ export const notesService = {
     return response.data
   },
 
-  async updateNote(id: number, note: Partial<Note>): Promise<ApiResponse<Note>> {
-    const response = await api.put<ApiResponse<Note>>(`/Note/Update/${id}`, note)
+  async updateNote(id: number, note: Partial<Note>): Promise<Note> {
+    const response = await api.put<Note>(`/Note/Update/${id}`, note)
     return response.data
   },
 

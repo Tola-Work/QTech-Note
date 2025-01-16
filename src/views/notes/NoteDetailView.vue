@@ -27,31 +27,32 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import { useStore, useStoreState } from '@/composables/useStore'
 import { useRoute, useRouter } from 'vue-router'
-import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { fetchNoteById, updateNote, deleteNote } from '@/store/slices/notesSlice'
-import Button from '@/components/ui/Button.vue'
-import NoteForm from '@/features/notes/components/NoteForm.vue'
 import type { NoteFormData } from '@/features/notes/types/notes.types'
 
+const store = useStore()
 const route = useRoute()
 const router = useRouter()
-const dispatch = useAppDispatch()
 
 const loading = ref(false)
 const saving = ref(false)
 const error = ref('')
 
-const note = useAppSelector(state => state.notes.selectedNote)
+const notesState = useStoreState('notes')
+const note = computed(() => notesState.value.selectedNote)
 
 const handleUpdate = async (data: NoteFormData) => {
-  if (!note) return
+  if (!note.value) return
 
   try {
     saving.value = true
-    await dispatch(updateNote({ id: note.id, ...data }))
-  } catch (err) {
+    await store.dispatch('notes/updateNote', {
+      id: note.value.noteId,
+      ...data
+    })
+  } catch (err: any) {
     error.value = 'Failed to update note'
   } finally {
     saving.value = false
@@ -59,27 +60,27 @@ const handleUpdate = async (data: NoteFormData) => {
 }
 
 const handleDelete = async () => {
-  if (!note || !confirm('Are you sure you want to delete this note?')) return
+  if (!note.value || !confirm('Are you sure you want to delete this note?')) return
 
   try {
-    await dispatch(deleteNote(note.id))
+    await store.dispatch('notes/deleteNote', note.value.noteId)
     router.push('/')
-  } catch (err) {
+  } catch (err: any) {
     error.value = 'Failed to delete note'
   }
 }
 
 onMounted(async () => {
-  const noteId = route.params.id as string
-  if (!noteId) return
-
-  try {
-    loading.value = true
-    await dispatch(fetchNoteById(noteId))
-  } catch (err) {
-    error.value = 'Failed to fetch note'
-  } finally {
-    loading.value = false
+  const noteId = parseInt(route.params.id as string)
+  if (noteId) {
+    try {
+      loading.value = true
+      await store.dispatch('notes/fetchNoteById', noteId)
+    } catch (err: any) {
+      error.value = 'Failed to fetch note'
+    } finally {
+      loading.value = false
+    }
   }
 })
 </script> 

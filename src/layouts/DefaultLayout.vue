@@ -1,7 +1,7 @@
 <template>
-  <div class="flex h-screen">
+  <div class="h-screen flex overflow-hidden">
     <!-- Sidebar -->
-    <aside class="w-64 bg-white border-r flex flex-col shrink-0">
+    <aside class="w-64 bg-white border-r flex flex-col flex-shrink-0">
       <!-- Search Section -->
       <div class="p-4 border-b">
         <div class="relative">
@@ -13,6 +13,13 @@
             @input="handleSearch"
           />
           <MagnifyingGlassIcon class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
+          <div 
+            v-if="searchQuery" 
+            @click="searchQuery = ''; handleSearch()"
+            class="absolute right-3 top-2.5 cursor-pointer text-gray-400 hover:text-gray-600"
+          >
+            <XMarkIcon class="w-5 h-5" />
+          </div>
         </div>
       </div>
 
@@ -24,29 +31,22 @@
             v-for="option in sortOptions"
             :key="option.value"
             @click="handleSort(option.value)"
+            class="w-full flex items-center justify-between px-3 py-2 rounded text-sm"
             :class="[
-              'w-full text-left px-3 py-2 rounded text-sm',
               sortBy === option.value
                 ? 'bg-blue-50 text-blue-600'
                 : 'text-gray-600 hover:bg-gray-50'
             ]"
           >
-            {{ option.label }}
+            <span>{{ option.label }}</span>
+            <span v-if="sortBy === option.value" class="text-xs">
+              {{ sortOrder === 'asc' ? '↑' : '↓' }}
+            </span>
           </button>
         </div>
       </div>
 
-      <!-- Navigation -->
-      <nav class="flex-1 p-4">
-        <router-link
-          to="/"
-          class="flex items-center px-3 py-2 text-gray-600 rounded-lg hover:bg-gray-50"
-          :class="{ 'bg-gray-100': $route.name === 'notes' }"
-        >
-          <DocumentTextIcon class="w-5 h-5 mr-3" />
-          All Notes
-        </router-link>
-      </nav>
+   
 
       <!-- Add this at the bottom of aside -->
       <div class="p-4 border-t mt-auto">
@@ -60,8 +60,8 @@
       </div>
     </aside>
 
-    <!-- Main Content -->
-    <div class="flex-1">
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-hidden">
       <router-view 
         v-bind="{
           notes,
@@ -74,92 +74,128 @@
         @search="handleSearch"
         @sort="handleSort"
       />
-    </div>
+    </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchNotes, clearNotes } from "@/store/slices/notesSlice";
-import { MagnifyingGlassIcon, DocumentTextIcon, ArrowLeftOnRectangleIcon } from "@heroicons/vue/24/outline";
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useStore, useStoreState } from '@/composables/useStore'
+import { useRouter } from 'vue-router'
+import { MagnifyingGlassIcon, DocumentTextIcon, ArrowLeftOnRectangleIcon, XMarkIcon } from "@heroicons/vue/24/outline";
 import { debounce } from "@/utils/helpers";
 import type { NoteSearchParams } from "@/features/notes/types/notes.types";
-import { useRouter } from 'vue-router';
-import { logout } from "@/store/slices/authSlice";
 
-const dispatch = useAppDispatch();
-const router = useRouter();
+const store = useStore()
+const router = useRouter()
 
-// Use separate selectors for better performance
-const notes = useAppSelector((state) => state.notes.items);
-const loading = useAppSelector((state) => state.notes.loading);
-const error = useAppSelector((state) => state.notes.error);
-const pagination = useAppSelector((state) => state.notes.pagination);
+// Use the enhanced store state access
+const notesState = useStoreState('notes')
+const notes = computed(() => notesState.value.items)
+const loading = computed(() => notesState.value.loading)
+const error = computed(() => notesState.value.error)
+const pagination = computed(() => notesState.value.pagination)
 
 // Local state only for UI controls
 const searchQuery = ref("");
-const sortBy = ref("lastUpdated");
+const searchTimeout = ref<number | null>(null);
+const sortBy = ref("UpdatedAt");
+const sortOrder = ref<'asc' | 'desc'>('desc');
 
 const sortOptions = [
-  { label: "Last Updated", value: "lastUpdated" },
-  { label: "Created Date", value: "created" },
-  { label: "Title", value: "title" },
+  { label: "Last Updated", value: "UpdatedAt" },
+  { label: "Created Date", value: "CreatedAt" },
+  { label: "Title", value: "Title" },
 ];
 
 // Handlers
 const fetchNotesList = async (params: NoteSearchParams) => {
   try {
-    await dispatch(fetchNotes(params)).unwrap();
+    console.log('Fetching with params:', {
+      ...params,
+      SortBy: sortBy.value,
+      SortOrder: sortOrder.value
+    });
+    
+    await store.dispatch('notes/fetchNotes', {
+      ...params,
+      SortBy: sortBy.value,
+      SortOrder: sortOrder.value.toUpperCase(),
+      Query: searchQuery.value
+    })
   } catch (err: any) {
-    console.error('Fetch error:', err);
+    console.error('Fetch error:', err)
   }
-};
+}
 
+// Update search handler with proper debounce
 const handleSearch = debounce(() => {
-  fetchNotesList({
-    Page: 1,
-    PageSize: 10,
-  });
+  if (searchQuery.value.trim() === '') {
+    // If search is empty, fetch all notes
+    fetchNotesList({
+      Page: 1,
+      PageSize: 10
+    });
+  } else {
+    // If there's a search query, use search endpoint
+    fetchNotesList({
+      Page: 1,
+      PageSize: 10,
+      Query: searchQuery.value.trim()
+    });
+  }
 }, 300);
 
 const handleSort = (sort: string) => {
-  sortBy.value = sort;
+  console.log('Sort clicked:', sort);
+  
+  if (sortBy.value === sort) {
+    // Toggle sort order if clicking the same sort option
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
+    console.log('Toggled sort order:', sortOrder.value);
+  } else {
+    // Set new sort field and default to descending order
+    sortBy.value = sort;
+    sortOrder.value = 'desc';
+    console.log('New sort:', { field: sortBy.value, order: sortOrder.value });
+  }
+  
   fetchNotesList({
     Page: 1,
-    PageSize: 10,
+    PageSize: 10
   });
-};
+}
 
 const handlePageChange = (page: number) => {
   fetchNotesList({
     Page: page,
     PageSize: 10,
-  });
-};
+  })
+}
 
 // Initial fetch
 onMounted(async () => {
-  console.log('Component mounted, fetching notes...');
+  console.log('Component mounted, fetching notes...')
   try {
-    const result = await dispatch(fetchNotes({
+    await store.dispatch('notes/fetchNotes', {
       Page: 1,
       PageSize: 10,
-    })).unwrap();
-    console.log('Initial fetch result:', result);
+      SortBy: sortBy.value,
+      SortOrder: sortOrder.value
+    })
   } catch (error) {
-    console.error('Initial fetch failed:', error);
+    console.error('Initial fetch failed:', error)
   }
-});
+})
 
 // Cleanup on unmount
 onUnmounted(() => {
-  dispatch(clearNotes());
-});
+  store.dispatch('notes/clearNotes')
+})
 
 // Add logout handler
 const handleLogout = async () => {
-  await dispatch(logout());
-  router.push('/auth/login');
-};
+  await store.dispatch('auth/logout')
+  router.push('/auth/login')
+}
 </script> 

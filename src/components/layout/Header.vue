@@ -75,20 +75,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useStore } from '@/composables/useStore'
 import { useRouter } from 'vue-router'
-import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { logout } from '@/store/slices/authSlice'
 import Button from '@/components/ui/Button.vue'
 
+const store = useStore()
 const router = useRouter()
-const dispatch = useAppDispatch()
-const isAuthenticated = useAppSelector(state => state.auth.isAuthenticated)
+const isAuthenticated = computed(() => store.state.auth.isAuthenticated)
 const isMenuOpen = ref(false)
 const appName = import.meta.env.VITE_APP_NAME
 
 const handleLogout = async () => {
-  await dispatch(logout())
+  await store.dispatch('auth/logout')
   router.push('/auth/login')
   isMenuOpen.value = false
 }

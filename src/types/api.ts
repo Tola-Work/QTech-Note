@@ -25,7 +25,7 @@ export interface RegisterCredentials extends LoginCredentials {
 }
 
 export interface ApiResponse<T> {
-  data: T
+  data?: T
   message?: string
-  success: boolean
+  success?: boolean
 } 

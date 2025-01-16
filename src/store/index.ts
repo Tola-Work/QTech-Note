@@ -1,27 +1,42 @@
-import { configureStore } from '@reduxjs/toolkit'
-import { persistReducer } from 'redux-persist'
-import storage from 'redux-persist/lib/storage'
-import notesReducer from './slices/notesSlice'
-import authReducer from './slices/authSlice'
+import { createStore, Store as VuexStore, CommitOptions, DispatchOptions } from 'vuex'
+import createPersistedState from 'vuex-persistedstate'
+import auth from './modules/auth'
+import notes from './modules/notes'
 
-const persistConfig = {
-  key: 'root',
-  storage,
-  whitelist: ['notes', 'auth']
+// Define store module types
+export type RootState = {
+  auth: typeof auth.state
+  notes: typeof notes.state
 }
 
-const persistedNotesReducer = persistReducer(persistConfig, notesReducer)
+// Define store type with modules
+export type Store = Omit<
+  VuexStore<RootState>,
+  'commit' | 'dispatch'
+> & {
+  commit<K extends keyof typeof notes.mutations, P extends Parameters<typeof notes.mutations[K]>[1]>(
+    key: K,
+    payload: P,
+    options?: CommitOptions
+  ): ReturnType<typeof notes.mutations[K]>
+} & {
+  dispatch<K extends keyof typeof notes.actions>(
+    key: K,
+    payload?: Parameters<typeof notes.actions[K]>[1],
+    options?: DispatchOptions
+  ): ReturnType<typeof notes.actions[K]>
+}
 
-export const store = configureStore({
-  reducer: {
-    notes: persistedNotesReducer,
-    auth: authReducer
+// Create and export the store
+export const store = createStore({
+  modules: {
+    auth,
+    notes
   },
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({
-      serializableCheck: false
+  plugins: [
+    createPersistedState({
+      key: 'qtech_note',
+      paths: ['auth.user', 'auth.isAuthenticated']
     })
-})
-
-export type RootState = ReturnType<typeof store.getState>
-export type AppDispatch = typeof store.dispatch 
+  ]
+}) as Store 

@@ -39,14 +39,13 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useStore } from '@/composables/useStore'
 import { useRouter, useRoute } from 'vue-router'
-import { useAppDispatch } from '@/store/hooks'
-import { login } from '@/store/slices/authSlice'
 import type { LoginCredentials } from '../types/auth.types'
 
+const store = useStore()
 const router = useRouter()
 const route = useRoute()
-const dispatch = useAppDispatch()
 
 const form = ref<LoginCredentials>({
   email: '',
@@ -60,11 +59,11 @@ const handleSubmit = async () => {
   try {
     loading.value = true
     error.value = ''
-await dispatch(login(form.value)).unwrap()
+    await store.dispatch('auth/login', form.value)
     const redirect = route.query.redirect as string
     router.push(redirect || '/')
   } catch (err: any) {
-    error.value = err || 'Failed to login'
+    error.value = err.message || 'Failed to login'
   } finally {
     loading.value = false
   }
