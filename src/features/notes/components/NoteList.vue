@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div ref="containerRef" class="transition-opacity duration-200">
     <div v-if="loading" class="flex justify-center items-center py-8">
       <div
         class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"
@@ -15,7 +15,7 @@
     </div>
 
     <div v-else :class="[
-      'grid gap-3 sm:gap-4',
+      'grid gap-3 sm:gap-4 transition-all duration-200',
       view === 'grid' 
         ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4' 
         : 'grid-cols-1'
@@ -37,8 +37,12 @@
 <script setup lang="ts">
 import NoteCard from "./NoteCard.vue";
 import type { Note } from "../types/notes.types";
+import { watch, ref, nextTick, watchEffect, inject, Ref } from 'vue';
+import { SortState } from "../types/notes.types";
 
-defineProps<{
+const containerRef = ref<HTMLElement | null>(null);
+
+const props = defineProps<{
   notes: Note[];
   loading?: boolean;
   error?: string | null;
@@ -49,4 +53,15 @@ defineEmits<{
   (e: "edit", note: Note): void;
   (e: "delete", id: number): void;
 }>();
+
+const sortState = inject<Ref<SortState>>('sortState')!;
+
+watchEffect(() => {
+  if (containerRef.value) {
+    containerRef.value.style.opacity = '0';
+    nextTick(() => {
+      containerRef.value!.style.opacity = '1';
+    });
+  }
+});
 </script>

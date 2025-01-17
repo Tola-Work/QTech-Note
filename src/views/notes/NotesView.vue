@@ -3,42 +3,98 @@
   <div class="h-screen flex flex-col">
     <!-- Header -->
     <div class="p-4 lg:p-6 bg-white border-b flex-shrink-0">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div class="flex items-center">
-          <!-- Menu button placeholder for proper spacing -->
-          <div class="w-8 h-8 lg:hidden"></div>
-          <h2 class="text-xl lg:text-2xl font-bold text-gray-900 ml-4">QTech Notes</h2>
+      <!-- Top Section -->
+    
+
+      <!-- Controls Section -->
+      <div class="flex flex-col sm:flex-row gap-4">
+        <!-- Search Bar -->
+        <div class="relative flex-grow">
+          <input
+            type="text"
+            placeholder="Search notes..."
+            class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            v-model="searchQuery"
+            @input="handleSearch"
+          />
+          <MagnifyingGlassIcon class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
         </div>
-        
-        <div class="flex items-center gap-2 sm:gap-4">
-          <!-- View Options - Hidden on mobile -->
-          <div class="hidden sm:flex items-center gap-2">
+
+        <!-- Controls Group -->
+        <div class="flex items-center justify-between sm:justify-end gap-3">
+          <!-- Sort Dropdown -->
+          <div class="relative sort-dropdown">
+            <button 
+              @click.stop="showSortMenu = !showSortMenu"
+              class="flex items-center gap-2 px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              <ArrowsUpDownIcon class="w-4 h-4" />
+              <span class="truncate">{{ currentSort.label }}</span>
+              <ChevronDownIcon class="w-4 h-4 transition-transform" :class="{ 'rotate-180': showSortMenu }" />
+            </button>
+            
+            <!-- Sort Menu -->
+            <div v-if="showSortMenu" 
+              class="fixed sm:absolute left-4 right-4 sm:left-auto sm:right-0 sm:w-56 mt-2 bg-white rounded-lg shadow-lg z-50 border"
+              @click.stop
+            >
+              <div class="p-1">
+                <button
+                  v-for="option in sortOptions"
+                  :key="option.value"
+                  @click="handleSort(option)"
+                  class="w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-md hover:bg-gray-50"
+                  :class="[currentSort.value === option.value ? 'bg-blue-50 text-blue-600' : 'text-gray-700']"
+                >
+                  <span class="flex items-center gap-2">
+                    <component :is="option.icon" class="w-4 h-4" />
+                    {{ option.label }}
+                  </span>
+                  <ArrowUpIcon 
+                    v-if="currentSort.value === option.value"
+                    class="w-4 h-4 transition-transform"
+                    :class="{ 'rotate-180': sortOrder === 'desc' }"
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- View Options -->
+          <div class="flex items-center rounded-lg border border-gray-300 bg-white p-1 hidden sm:inline">
             <button 
               v-for="view in viewOptions" 
               :key="view.value"
               @click="currentView = view.value"
+              class="p-1.5 rounded-md transition-colors"
               :class="[
-                'p-2 rounded',
-                currentView === view.value ? 'text-blue-600' : 'text-gray-400'
+                currentView === view.value 
+                  ? 'bg-gray-100 text-blue-600' 
+                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
               ]"
             >
               <component :is="view.icon" class="w-5 h-5" />
             </button>
           </div>
 
-          <Button @click="showNewNoteModal = true" variant="primary" class="w-full sm:w-auto">
-            <PlusIcon class="w-5 h-5 sm:mr-2" />
-            <span class="hidden sm:inline">New Note</span>
+          <!-- New Note Button (Desktop) -->
+          <Button 
+            @click="showNewNoteModal = true" 
+            variant="primary" 
+            class="hidden sm:flex items-center gap-2"
+          >
+            <PlusIcon class="w-5 h-5" />
+            <span>New Note</span>
           </Button>
         </div>
       </div>
     </div>
 
-    <!-- Scrollable Content Area -->
-    <div class="flex-1 overflow-hidden">
+    <!-- Content Area -->
+    <div class="flex-1 overflow-hidden bg-gray-50">
       <div class="h-full overflow-y-auto px-4 lg:px-6 py-4">
         <NoteList
-          :notes="notes"
+          :notes="sortedNotes"
           :loading="loading"
           :error="error"
           :view="currentView"
@@ -47,7 +103,7 @@
         />
 
         <!-- Pagination -->
-        <div v-if="notes.length > 0" class="mt-6 flex justify-center pb-4">
+        <div v-if="sortedNotes.length > 0" class="mt-6 flex justify-center pb-4">
           <Pagination 
             :current-page="pagination.currentPage"
             :total-pages="pagination.totalPages"
@@ -56,6 +112,17 @@
         </div>
       </div>
     </div>
+
+    <!-- Mobile New Note Button -->
+    <div class="sm:hidden fixed right-4 bottom-4">
+      <Button 
+        @click="showNewNoteModal = true" 
+        variant="primary" 
+        class="rounded-full w-14 h-14 shadow-lg flex items-center justify-center"
+      >
+        <PlusIcon class="w-6 h-6" />
+      </Button>
+    </div>
   </div>
 
   <!-- Modals -->
@@ -63,12 +130,14 @@
     v-if="showNewNoteModal"
     v-model="showNewNoteModal"
     :title="editingNote ? 'Edit Note' : 'New Note'"
+    @close="handleModalClose"
   >
     <NoteForm
+      :key="showNewNoteModal ? 'open' : 'closed'"
       :initial-data="editingNote || undefined"
       :loading="saving"
       @submit="handleSaveNote"
-      @cancel="handleCancelEdit"
+      @cancel="handleModalClose"
     />
   </Modal>
 </template>
@@ -76,18 +145,25 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useStore, useStoreState } from '@/composables/useStore'
-import { useRouter } from 'vue-router'
 import type { Note, NoteFormData } from '@/features/notes/types/notes.types'
 import {
   PlusIcon,
   Squares2X2Icon as ViewGridIcon,
-  ListBulletIcon as ViewListIcon
+  ListBulletIcon as ViewListIcon,
+  ArrowsUpDownIcon,
+  ChevronDownIcon,
+  ArrowUpIcon,
+  ClockIcon,
+  CalendarIcon,
+  DocumentIcon,
+  MagnifyingGlassIcon
 } from "@heroicons/vue/24/outline";
 import Button from "@/components/ui/Button.vue";
 import Modal from "@/components/ui/Modal.vue";
 import NoteList from "@/features/notes/components/NoteList.vue";
 import NoteForm from "@/features/notes/components/NoteForm.vue";
 import Pagination from "@/components/ui/Pagination.vue";
+import { debounce } from "@/utils/helpers";
 
 const store = useStore()
 
@@ -109,31 +185,123 @@ const viewOptions = [
   { value: "list" as const, icon: ViewListIcon },
 ] as const;
 
+// Sort options with proper typing
+interface SortOption {
+  label: string;
+  value: 'UpdatedAt' | 'CreatedAt' | 'Title';
+  icon: any;
+  defaultOrder: 'asc' | 'desc';
+}
+
+const sortOptions: SortOption[] = [
+  { 
+    label: "Last Updated",
+    value: "UpdatedAt",
+    icon: ClockIcon,
+    defaultOrder: 'desc'
+  },
+  { 
+    label: "Created Date",
+    value: "CreatedAt",
+    icon: CalendarIcon,
+    defaultOrder: 'desc'
+  },
+  { 
+    label: "Title",
+    value: "Title",
+    icon: DocumentIcon,
+    defaultOrder: 'asc'
+  }
+];
+
+// Sort state
+const showSortMenu = ref(false);
+const currentSort = ref<SortOption>(sortOptions[0]);
+const sortOrder = ref<'asc' | 'desc'>(sortOptions[0].defaultOrder);
+
+// Updated sortedNotes computed
+const sortedNotes = computed(() => {
+  if (!notes.value) return [];
+  
+  return [...notes.value].sort((a, b) => {
+    let aValue = a[currentSort.value.value.toLowerCase()];
+    let bValue = b[currentSort.value.value.toLowerCase()];
+
+    if (currentSort.value.value === 'UpdatedAt' || currentSort.value.value === 'CreatedAt') {
+      aValue = new Date(aValue).getTime();
+      bValue = new Date(bValue).getTime();
+    } else if (typeof aValue === 'string') {
+      aValue = aValue.toLowerCase();
+      bValue = bValue.toLowerCase();
+    }
+
+    const multiplier = sortOrder.value === 'asc' ? 1 : -1;
+    return (aValue < bValue ? -1 : aValue > bValue ? 1 : 0) * multiplier;
+  });
+});
+
+// Updated handleSort
+const handleSort = (option: SortOption) => {
+  if (currentSort.value.value === option.value) {
+    // Toggle order if same field
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    // New sort field
+    currentSort.value = option;
+    sortOrder.value = option.defaultOrder;
+  }
+  showSortMenu.value = false;
+};
+
+// Update click outside handler
+onMounted(() => {
+  const handleClickOutside = (e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (!target.closest('.sort-dropdown')) {
+      showSortMenu.value = false;
+    }
+  };
+
+  document.addEventListener('click', handleClickOutside);
+  
+  return () => {
+    document.removeEventListener('click', handleClickOutside);
+  };
+});
+
 // Handle note operations
 const handleSaveNote = async (data: NoteFormData) => {
+  if (!data.title.trim() || !data.content.trim()) return;
+  
   try {
-    saving.value = true
+    saving.value = true;
+    
     if (editingNote.value) {
       await store.dispatch('notes/updateNote', {
         id: editingNote.value.noteId,
         ...data
-      })
+      });
     } else {
-      await store.dispatch('notes/createNote', data)
+      const result = await store.dispatch('notes/createNote', data);
+      if (!result) throw new Error('Failed to create note');
     }
-    showNewNoteModal.value = false
-    editingNote.value = null
-    // Refresh notes list
+
+    // Close modal first
+    showNewNoteModal.value = false;
+    editingNote.value = null;
+    saving.value = false;
+
+    // Then refresh the list
     await store.dispatch('notes/fetchNotes', {
       Page: 1,
       PageSize: 10
-    })
+    });
+    
   } catch (err: any) {
-    console.error('Failed to save note:', err)
-  } finally {
-    saving.value = false
+    console.error('Failed to save note:', err);
+    saving.value = false;
   }
-}
+};
 
 const handleEditNote = (note: Note) => {
   editingNote.value = note;
@@ -155,9 +323,11 @@ const handleDeleteNote = async (id: number) => {
   }
 };
 
-const handleCancelEdit = () => {
-  editingNote.value = null;
-  showNewNoteModal.value = false;
+const handleModalClose = () => {
+  if (!saving.value) {  // Only close if not saving
+    showNewNoteModal.value = false;
+    editingNote.value = null;
+  }
 };
 
 const handlePageChange = (page: number) => {
@@ -188,4 +358,24 @@ onMounted(() => {
     window.removeEventListener('resize', handleResize)
   }
 });
+
+// Add searchQuery ref
+const searchQuery = ref('');
+
+// Add handleSearch function
+const handleSearch = debounce(() => {
+  store.dispatch('notes/fetchNotes', {
+    Page: 1,
+    PageSize: 10,
+    Query: searchQuery.value.trim()
+  });
+}, 300);
 </script>
+
+<style scoped>
+.sort-dropdown {
+  position: relative;
+}
+
+
+</style>

@@ -1,6 +1,5 @@
 <template>
   <div>
-    <h1 class="text-2xl font-bold text-gray-900 mb-6">Create your account</h1>
     <RegisterForm />
     <div class="mt-6 text-center">
       <p class="text-sm text-gray-600">

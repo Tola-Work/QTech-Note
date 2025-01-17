@@ -85,14 +85,13 @@ const notes: Module<NotesState, RootState> = {
       }
     },
 
-    async createNote({ commit }, noteData: NoteFormData) {
+    async createNote({ commit }, data: NoteFormData) {
       try {
-        const response = await notesService.createNote(noteData)
-        commit('ADD_NOTE', response.data)
-        return response.data
-      } catch (error: any) {
-        commit('SET_ERROR', error.message)
-        throw error
+        const note = await notesService.createNote(data);
+        return note;
+      } catch (error) {
+        console.error('Failed to create note:', error);
+        throw error;
       }
     },
 

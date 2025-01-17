@@ -1,76 +1,97 @@
 <template>
   <form @submit.prevent="handleSubmit" class="space-y-4">
-    <div>
-      <label for="title" class="block text-sm font-medium text-gray-700">Title</label>
-      <input
-        id="title"
-        v-model="form.title"
-        type="text"
-        required
-        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-      />
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Title</label>
+        <input
+          type="text"
+          v-model="form.title"
+          required
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          :disabled="loading"
+        />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Content</label>
+        <textarea
+          v-model="form.content"
+          required
+          rows="4"
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          :disabled="loading"
+        ></textarea>
+      </div>
     </div>
 
-    <div>
-      <label for="content" class="block text-sm font-medium text-gray-700">Content</label>
-      <textarea
-        id="content"
-        v-model="form.content"
-        rows="4"
-        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-      ></textarea>
-    </div>
-
-    <div class="flex justify-end space-x-3">
-      <button
-        type="button"
-        @click="$emit('cancel')"
-        class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+    <div class="flex justify-end gap-3">
+      <Button 
+        type="button" 
+        variant="secondary" 
+        @click="handleCancel"
+        :disabled="loading"
       >
         Cancel
-      </button>
-      <button
+      </Button>
+      <Button 
         type="submit"
-        :disabled="loading"
-        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+        variant="primary"
+        :loading="loading"
+        :disabled="!form.title.trim() || !form.content.trim()"
       >
-        {{ loading ? 'Saving...' : submitButtonText }}
-      </button>
-    </div>
-
-    <div v-if="error" class="text-red-600 text-sm">
-      {{ error }}
+        {{ initialData ? 'Update' : 'Create' }}
+      </Button>
     </div>
   </form>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import type { Note, NoteFormData } from '../types/notes.types'
+import { ref, watch } from 'vue';
+import type { NoteFormData } from '../types/notes.types';
+import Button from '@/components/ui/Button.vue';
 
 const props = defineProps<{
-  initialData?: Note
-  loading?: boolean
-}>()
+  initialData?: {
+    title: string;
+    content: string;
+  };
+  loading?: boolean;
+}>();
 
 const emit = defineEmits<{
-  (e: 'submit', data: NoteFormData): void
-  (e: 'cancel'): void
-}>()
+  (e: 'submit', data: NoteFormData): void;
+  (e: 'cancel'): void;
+}>();
 
-const form = ref<NoteFormData>({
-  title: props.initialData?.title || '',
-  content: props.initialData?.content || ''
-})
+const form = ref({
+  title: '',
+  content: ''
+});
 
-const error = ref('')
-
-const submitButtonText = computed(() => {
-  return props.initialData ? 'Update Note' : 'Create Note'
-})
+// Watch for initialData changes
+watch(() => props.initialData, (newData) => {
+  if (newData) {
+    form.value = {
+      title: newData.title,
+      content: newData.content
+    };
+  } else {
+    form.value = {
+      title: '',
+      content: ''
+    };
+  }
+}, { immediate: true });
 
 const handleSubmit = () => {
-  error.value = ''
-  emit('submit', form.value)
-}
+  if (!form.value.title.trim() || !form.value.content.trim()) return;
+  
+  emit('submit', {
+    title: form.value.title.trim(),
+    content: form.value.content.trim()
+  });
+};
+
+const handleCancel = () => {
+  emit('cancel');
+};
 </script> 

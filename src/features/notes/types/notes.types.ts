@@ -25,4 +25,9 @@ export interface NoteSearchParams {
 export interface NoteFormData {
   title: string
   content: string
-} 
+}
+
+export type SortState = {
+  by: string;
+  order: 'asc' | 'desc';
+}; 
