@@ -1,5 +1,7 @@
 import axios from 'axios'
-import { storage, TOKEN_KEY } from '@/utils/localStorage'
+import { storage, TOKEN_KEY, REFRESH_TOKEN_KEY } from '@/utils/localStorage'
+
+console.log('API Base URL:', import.meta.env.VITE_API_BASE_URL) // For debugging
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
