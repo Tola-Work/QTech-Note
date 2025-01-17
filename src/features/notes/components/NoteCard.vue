@@ -1,26 +1,26 @@
 <template>
-  <div class="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow">
-    <div class="flex justify-between items-start mb-3">
-      <h3 class="text-lg font-semibold text-gray-900">{{ note.title }}</h3>
-      <div class="flex gap-2">
+  <div class="bg-white rounded-lg shadow p-3 sm:p-4 hover:shadow-md transition-shadow">
+    <div class="flex justify-between items-start mb-2 sm:mb-3">
+      <h3 class="text-base sm:text-lg font-semibold text-gray-900 line-clamp-1">{{ note.title }}</h3>
+      <div class="flex gap-1 sm:gap-2 ml-2">
         <button 
           @click="$emit('edit', note)"
-          class="text-gray-600 hover:text-blue-600"
+          class="p-1 text-gray-600 hover:text-blue-600"
         >
-          <PencilSquareIcon class="w-5 h-5" />
+          <PencilSquareIcon class="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
         <button 
           @click="$emit('delete', note.noteId)"
-          class="text-gray-600 hover:text-red-600"
+          class="p-1 text-gray-600 hover:text-red-600"
         >
-          <TrashIcon class="w-5 h-5" />
+          <TrashIcon class="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
       </div>
     </div>
     
-    <p class="text-gray-600 mb-3 line-clamp-3">{{ note.content }}</p>
+    <p class="text-sm sm:text-base text-gray-600 mb-2 sm:mb-3 line-clamp-3">{{ note.content }}</p>
     
-    <div class="text-sm text-gray-500">
+    <div class="text-xs sm:text-sm text-gray-500">
       <div>Updated: {{ formatDateToCambodia(note.updatedAt) }}</div>
       <div>Created: {{ formatDateToCambodia(note.createdAt) }}</div>
     </div>

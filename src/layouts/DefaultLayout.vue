@@ -1,7 +1,24 @@
 <template>
   <div class="h-screen flex overflow-hidden">
+    <!-- Mobile Menu Button - Only visible on mobile -->
+    <button 
+      @click="isSidebarOpen = !isSidebarOpen"
+      class="lg:hidden fixed top-[1.35rem] left-4 z-20 p-1.5 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100 bg-white"
+    >
+      <Bars3Icon class="h-5 w-5" v-if="!isSidebarOpen" />
+      <XMarkIcon class="h-5 w-5" v-else />
+    </button>
+
     <!-- Sidebar -->
-    <aside class="w-64 bg-white border-r flex flex-col flex-shrink-0">
+    <aside 
+      :class="[
+        'bg-white border-r flex flex-col flex-shrink-0',
+        'transition-all duration-300 ease-in-out',
+        'fixed lg:static inset-y-0 left-0 z-10',
+        isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+        'w-64'
+      ]"
+    >
       <!-- Search Section -->
       <div class="p-4 border-b">
         <div class="relative">
@@ -60,8 +77,15 @@
       </div>
     </aside>
 
+    <!-- Overlay for mobile -->
+    <div 
+      v-if="isSidebarOpen" 
+      class="fixed inset-0 bg-black bg-opacity-50 lg:hidden z-0"
+      @click="isSidebarOpen = false"
+    ></div>
+
     <!-- Main Content Area -->
-    <main class="flex-1 overflow-hidden">
+    <main class="flex-1 overflow-hidden lg:ml-0">
       <router-view 
         v-bind="{
           notes,
@@ -79,10 +103,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useStore, useStoreState } from '@/composables/useStore'
-import { useRouter } from 'vue-router'
-import { MagnifyingGlassIcon, DocumentTextIcon, ArrowLeftOnRectangleIcon, XMarkIcon } from "@heroicons/vue/24/outline";
+import { useRouter, useRoute } from 'vue-router'
+import { MagnifyingGlassIcon, DocumentTextIcon, ArrowLeftOnRectangleIcon, XMarkIcon, Bars3Icon } from "@heroicons/vue/24/outline";
 import { debounce } from "@/utils/helpers";
 import type { NoteSearchParams } from "@/features/notes/types/notes.types";
 
@@ -198,4 +222,12 @@ const handleLogout = async () => {
   await store.dispatch('auth/logout')
   router.push('/auth/login')
 }
+
+// Add mobile sidebar state
+const isSidebarOpen = ref(false)
+
+// Close sidebar when route changes
+watch(useRoute(), () => {
+  isSidebarOpen.value = false
+})
 </script> 

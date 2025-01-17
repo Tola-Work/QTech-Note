@@ -2,13 +2,17 @@
   <!-- Main Content -->
   <div class="h-screen flex flex-col">
     <!-- Header -->
-    <div class="p-6 bg-white border-b flex-shrink-0">
-      <div class="flex justify-between items-center">
-        <h2 class="text-2xl font-bold text-gray-900">QTech Notes</h2>
+    <div class="p-4 lg:p-6 bg-white border-b flex-shrink-0">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="flex items-center">
+          <!-- Menu button placeholder for proper spacing -->
+          <div class="w-8 h-8 lg:hidden"></div>
+          <h2 class="text-xl lg:text-2xl font-bold text-gray-900 ml-4">QTech Notes</h2>
+        </div>
         
-        <div class="flex items-center gap-4">
-          <!-- View Options -->
-          <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 sm:gap-4">
+          <!-- View Options - Hidden on mobile -->
+          <div class="hidden sm:flex items-center gap-2">
             <button 
               v-for="view in viewOptions" 
               :key="view.value"
@@ -22,9 +26,9 @@
             </button>
           </div>
 
-          <Button @click="showNewNoteModal = true" variant="primary">
-            <PlusIcon class="w-5 h-5 mr-2" />
-            New Note
+          <Button @click="showNewNoteModal = true" variant="primary" class="w-full sm:w-auto">
+            <PlusIcon class="w-5 h-5 sm:mr-2" />
+            <span class="hidden sm:inline">New Note</span>
           </Button>
         </div>
       </div>
@@ -32,7 +36,7 @@
 
     <!-- Scrollable Content Area -->
     <div class="flex-1 overflow-hidden">
-      <div class="h-full overflow-y-auto px-6 py-4">
+      <div class="h-full overflow-y-auto px-4 lg:px-6 py-4">
         <NoteList
           :notes="notes"
           :loading="loading"
@@ -169,5 +173,19 @@ onMounted(() => {
     Page: 1,
     PageSize: 10
   });
+
+  // Watch screen size to force grid view on mobile
+  const handleResize = () => {
+    if (window.innerWidth < 640) { // sm breakpoint
+      currentView.value = "grid"
+    }
+  }
+  
+  window.addEventListener('resize', handleResize)
+  handleResize() // Initial check
+  
+  return () => {
+    window.removeEventListener('resize', handleResize)
+  }
 });
 </script>
