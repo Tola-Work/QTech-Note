@@ -12,7 +12,7 @@ export function useStoreState<K extends keyof Store['state']>(key: K) {
   return computed(() => store.state[key])
 }
 
-export function useStoreGetter<T>(key: string) {
+export function useStoreGetter(key: string) {
   const store = useStore()
   return computed(() => store.getters[key])
 } 

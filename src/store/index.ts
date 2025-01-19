@@ -7,6 +7,7 @@ import notes from './modules/notes'
 export type RootState = {
   auth: typeof auth.state
   notes: typeof notes.state
+  isAuthenticated: boolean
 }
 
 // Define store type with modules

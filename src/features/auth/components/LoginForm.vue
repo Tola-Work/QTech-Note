@@ -5,10 +5,13 @@
       <input
         id="email"
         v-model="form.email"
-        type="email"
-        required
-        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-      />
+        type="text"
+        :class="[
+          'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
+          errors.email ? 'border-red-500' : ''
+        ]"
+        />
+        <p v-if="errors.email" class="mt-1 text-sm text-red-600">{{ errors.email }}</p>
     </div>
 
     <div>
@@ -16,10 +19,14 @@
       <input
         id="password"
         v-model="form.password"
-        type="password"
-        required
+        type="text"
         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-      />
+        :class="[
+          'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
+          errors.password ? 'border-red-500' : ''
+        ]"
+        />
+        <p v-if="errors.password" class="mt-1 text-sm text-red-600">{{ errors.password }}</p>
     </div>
 
     <div v-if="error" class="text-red-600 text-sm mt-2">
@@ -42,6 +49,8 @@ import { ref } from 'vue'
 import { useStore } from '@/composables/useStore'
 import { useRouter, useRoute } from 'vue-router'
 import type { LoginCredentials } from '../types/auth.types'
+import { loginSchema, validateForm } from '@/utils/validation'
+import Button from '@/components/ui/Button.vue'
 
 const store = useStore()
 const router = useRouter()
@@ -54,8 +63,13 @@ const form = ref<LoginCredentials>({
 
 const loading = ref(false)
 const error = ref('')
-
+const errors = ref<Record<string, string>>({})
 const handleSubmit = async () => {
+  const { isValid, errors: validationErrors } = await validateForm(loginSchema, form.value)
+  if (!isValid) {
+    errors.value = validationErrors
+    return
+  }
   try {
     loading.value = true
     error.value = ''

@@ -1,7 +1,8 @@
-import { Module } from 'vuex'
+
 import { RootState } from '@/store'
 import { notesService } from '@/services/notesService'
 import type { Note, NoteFormData, NoteSearchParams } from '@/features/notes/types/notes.types'
+import { Commit } from 'vuex/types/index.js'
 
 interface NotesState {
   items: Note[]
@@ -30,34 +31,34 @@ const notes: Module<NotesState, RootState> = {
   state,
   
   mutations: {
-    SET_NOTES(state, notes: Note[]) {
+    SET_NOTES(state: NotesState, notes: Note[]) {
       state.items = notes
     },
-    SET_LOADING(state, loading: boolean) {
+    SET_LOADING(state: NotesState, loading: boolean) {
       state.loading = loading
     },
-    SET_ERROR(state, error: string | null) {
+    SET_ERROR(state: NotesState, error: string | null) {
       state.error = error
     },
-    SET_PAGINATION(state, pagination) {
+    SET_PAGINATION(state: NotesState, pagination: { currentPage: number, totalPages: number }) {
       state.pagination = pagination
     },
-    SET_SELECTED_NOTE(state, note: Note | null) {
+    SET_SELECTED_NOTE(state: NotesState, note: Note | null) {
       state.selectedNote = note
     },
-    ADD_NOTE(state, note: Note) {
+    ADD_NOTE(state: NotesState, note: Note) {
       state.items.push(note)
     },
-    UPDATE_NOTE(state, updatedNote: Note) {
+    UPDATE_NOTE(state: NotesState, updatedNote: Note) {
       const index = state.items.findIndex(note => note.noteId === updatedNote.noteId)
       if (index !== -1) {
         state.items.splice(index, 1, updatedNote)
       }
     },
-    DELETE_NOTE(state, noteId: number) {
+    DELETE_NOTE(state: NotesState, noteId: number) {
       state.items = state.items.filter(note => note.noteId !== noteId)
     },
-    CLEAR_NOTES(state) {
+    CLEAR_NOTES(state: NotesState) {
       state.items = []
       state.selectedNote = null
       state.error = null
@@ -69,7 +70,7 @@ const notes: Module<NotesState, RootState> = {
   },
 
   actions: {
-    async fetchNotes({ commit }, params?: NoteSearchParams) {
+    async fetchNotes({ commit }: { commit: Commit }, params?: NoteSearchParams) {
       try {
         commit('SET_LOADING', true)
         const response = await notesService.getNotes(params)
@@ -85,7 +86,7 @@ const notes: Module<NotesState, RootState> = {
       }
     },
 
-    async createNote({ commit }, data: NoteFormData) {
+    async createNote({ commit }: { commit: Commit }, data: NoteFormData) {
       try {
         const note = await notesService.createNote(data);
         return note;
@@ -95,7 +96,7 @@ const notes: Module<NotesState, RootState> = {
       }
     },
 
-    async updateNote({ commit }, payload: { id: number } & NoteFormData) {
+    async updateNote({ commit }: { commit: Commit }, payload: { id: number } & NoteFormData) {
       try {
         commit('SET_LOADING', true)
         const { id, ...noteData } = payload
@@ -110,7 +111,7 @@ const notes: Module<NotesState, RootState> = {
       }
     },
 
-    async deleteNote({ commit }, id: number) {
+    async deleteNote({ commit }: { commit: Commit }, id: number) {
       try {
         await notesService.deleteNote(id)
         commit('DELETE_NOTE', id)
@@ -120,7 +121,7 @@ const notes: Module<NotesState, RootState> = {
       }
     },
 
-    async fetchNoteById({ commit }, id: number) {
+    async fetchNoteById({ commit }: { commit: Commit }, id: number) {
       try {
         const response = await notesService.getNoteById(id)
         commit('SET_SELECTED_NOTE', response)
@@ -131,13 +132,13 @@ const notes: Module<NotesState, RootState> = {
       }
     },
 
-    clearNotes({ commit }) {
+    clearNotes({ commit }: { commit: Commit }) {
       commit('CLEAR_NOTES')
     }
   },
 
   getters: {
-    getNoteById: (state) => (id: number) => {
+    getNoteById: (state: NotesState ) => (id: number) => {
       return state.items.find(note => note.noteId === id)
     }
   }

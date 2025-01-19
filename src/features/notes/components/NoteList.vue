@@ -37,12 +37,11 @@
 <script setup lang="ts">
 import NoteCard from "./NoteCard.vue";
 import type { Note } from "../types/notes.types";
-import { watch, ref, nextTick, watchEffect, inject, Ref } from 'vue';
-import { SortState } from "../types/notes.types";
+import { ref, nextTick, watchEffect } from 'vue';
 
 const containerRef = ref<HTMLElement | null>(null);
 
-const props = defineProps<{
+defineProps<{
   notes: Note[];
   loading?: boolean;
   error?: string | null;
@@ -54,7 +53,6 @@ defineEmits<{
   (e: "delete", id: number): void;
 }>();
 
-const sortState = inject<Ref<SortState>>('sortState')!;
 
 watchEffect(() => {
   if (containerRef.value) {

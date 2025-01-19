@@ -15,11 +15,9 @@ export interface Note {
 }
 
 export interface NoteSearchParams {
-  Page?: number
-  PageSize?: number
-  SortBy?: 'UpdatedAt' | 'CreatedAt' | 'Title'
-  SortOrder?: 'ASC' | 'DESC'
-  Query?: string
+  query?: string;
+  sortBy: 'updatedAt' | 'createdAt' | 'title';
+  sortOrder: 'asc' | 'desc';
 }
 
 export interface NoteFormData {

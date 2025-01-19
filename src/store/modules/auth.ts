@@ -1,7 +1,7 @@
-import { Module } from 'vuex'
+import { Module,Commit } from 'vuex'
 import { RootState } from '@/store'
 import { authService } from '@/services/authService'
-import type { AuthState, LoginCredentials, RegisterCredentials } from '@/features/auth/types/auth.types'
+import type { AuthState, LoginCredentials, RegisterCredentials, User } from '@/features/auth/types/auth.types'
 import { storage, TOKEN_KEY, USER_KEY, REFRESH_TOKEN_KEY } from '@/utils/localStorage'
 
 const state: AuthState = {
@@ -16,17 +16,17 @@ const auth: Module<AuthState, RootState> = {
   state,
 
   mutations: {
-    SET_USER(state, user) {
+    SET_USER(state: AuthState, user: User) {
       state.user = user
       state.isAuthenticated = !!user
     },
-    SET_LOADING(state, loading: boolean) {
+    SET_LOADING(state: AuthState, loading: boolean) {
       state.loading = loading
     },
-    SET_ERROR(state, error: string | null) {
+    SET_ERROR(state: AuthState, error: string | null) {
       state.error = error
     },
-    CLEAR_AUTH(state) {
+    CLEAR_AUTH(state: AuthState) {
       state.user = null
       state.isAuthenticated = false
       state.error = null
@@ -34,13 +34,13 @@ const auth: Module<AuthState, RootState> = {
   },
 
   actions: {
-    async login({ commit }, credentials: LoginCredentials) {
+    async login({ commit }: { commit: Commit }  , credentials: LoginCredentials) {
       try {
         commit('SET_LOADING', true)
         const response = await authService.login(credentials)
         
-        storage.set(TOKEN_KEY, response.data.accessToken)
-        storage.set(REFRESH_TOKEN_KEY, response.data.refreshToken)
+        storage.set(TOKEN_KEY, response.data?.accessToken)
+        storage.set(REFRESH_TOKEN_KEY, response.data?.refreshToken)
         storage.set(USER_KEY, response.data)
         
         commit('SET_USER', response.data)
@@ -53,13 +53,13 @@ const auth: Module<AuthState, RootState> = {
       }
     },
 
-    async register({ commit }, credentials: RegisterCredentials) {
+    async register({ commit }: { commit: Commit }, credentials: RegisterCredentials) {
       try {
         commit('SET_LOADING', true)
         const response = await authService.register(credentials)
         
-        storage.set(TOKEN_KEY, response.data.accessToken)
-        storage.set(REFRESH_TOKEN_KEY, response.data.refreshToken)
+        storage.set(TOKEN_KEY, response.data?.accessToken)
+        storage.set(REFRESH_TOKEN_KEY, response.data?.refreshToken)
         storage.set(USER_KEY, response.data)
         
         commit('SET_USER', response.data)
@@ -72,7 +72,7 @@ const auth: Module<AuthState, RootState> = {
       }
     },
 
-    async logout({ commit }) {
+    async logout({ commit }: { commit: Commit }) {
       try {
         await authService.logout()
       } finally {
